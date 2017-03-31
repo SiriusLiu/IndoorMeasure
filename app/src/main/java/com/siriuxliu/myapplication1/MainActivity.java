@@ -1,16 +1,26 @@
 package com.siriuxliu.myapplication1;
 
+import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.net.wifi.ScanResult;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -38,7 +48,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     int flag=0;
     Timer timer = new Timer("gForceUpdate"); //SARAH ADDED
-
+    File file;
+    FileOutputStream fos;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -53,7 +64,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 updateGUI();
             }
         }, 0, 500);
+
+
+
         init();
+
+
     }
     public void init(){
         allNetWork = (TextView) findViewById(R.id.allNetWork);
@@ -104,13 +120,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     String accelerometer;
     String mag;
     String grav;
+    String msg="";
+    //FileOutputStream fos;
     public boolean getAllNetWorkList(){
         flag=1;
-
-        return true;
+       return true;
     }
     public boolean stopMeasure(){
         flag=0;
+        try {
+            file = new File("/sdcard/Data/info.txt");
+            fos = new FileOutputStream(file);
+            fos.write(msg.getBytes());
+            fos.close();
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+
 
         return true;
     }
@@ -125,6 +152,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     /**
      * 传感器数据变化时回调
      */
+    String accelerometer_s;
+    String gravity_s;
+    String magnetic_s;
     @Override
     public void onSensorChanged(SensorEvent event) {
         //判断传感器类别
@@ -132,27 +162,32 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         switch (event.sensor.getType()) {
 
 
-            case Sensor.TYPE_ACCELEROMETER: //加速度传感器
+            case Sensor.TYPE_ACCELEROMETER: //Acceleromter
                 accelerometer = "Accelerometer\n" + "x:"
                         + event.values[0] + "\n" + "y:"
                         + event.values[1]+ "\n" + "z:"
                         + event.values[2]+"\n";
+                accelerometer_s = "Accelerometer: " + "x= " + event.values[0] + " "
+                                                    + "y= " + event.values[1] + " "
+                                                    + "z= " + event.values[2];
                 break;
-            case Sensor.TYPE_GRAVITY://重力传感器
-                //gravity[0] = event.values[0];//单位m/s^2
-                //gravity[1] = event.values[1];
-               // gravity[2] = event.values[2];
+            case Sensor.TYPE_GRAVITY://Gravity
                 grav = "Gravity\n" + "x:"
                         + event.values[0] + "\n" + "y:"
                         + event.values[1] + "\n" + "z:"
                         + event.values[2] +"\n";
+                gravity_s = "Gravity: " + "x= " + event.values[0] + " "
+                                        + "y= " + event.values[1] + " "
+                                        + "z= " + event.values[2];
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
                 mag="Magnetic\n"+"x:"
                               +event.values[0]+"uT\n"+"y:"
                               +event.values[1]+"uT\n"+"z:"
                               +event.values[2]+"uT\n"+"\n";
-                //tvAccelerometer.setText(accelerometer);
+                magnetic_s= "Magnetic: " + "x= " + event.values[0] + " "
+                                        + "y= " + event.values[1] + " "
+                                        + "z= " + event.values[2] ;
                 break;
             default:
                 break;
@@ -184,16 +219,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mSensorManager.unregisterListener(this);
     }
 
+
     private void updateGUI() {
-            /*
-             * 推荐的一个刷新UI的方法
-             * Activity.runOnUiThread（Runnable）
-             * 在新的线程中更新UI
-             * Runnable是一个接口，需要你实现run方法，上面的TimerTask就是实现了这个接口同样需要实现run方法
-             * */
         runOnUiThread(new Runnable() {
             public void run() {
                 if (flag==1){
+                    flag=0;
+                    //String message = new String();
+
                     // String currentG = currentAcceleration/SensorManager.STANDARD_GRAVITY
                     //         + "Gs";
                     tvAccelerometer.setText(accelerometer);
@@ -216,12 +249,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                             mScanResult = list.get(i);
                             sb = sb.append(mScanResult.BSSID + "  ").append(mScanResult.SSID + "   ")
                                     .append(mScanResult.capabilities + "   ").append(mScanResult.frequency + "   ")
-                                    .append(mScanResult.level + "\n\n");
+                                    .append(mScanResult.level + "\n");
                         }
                         allNetWork.setText("The scanned Wifi Network: \n" + sb.toString());
                         allNetWork.invalidate();
-
                     }
+                    DecimalFormat df = new DecimalFormat("#,##0.000");
+                    SimpleDateFormat sdf=new SimpleDateFormat("yyyy/MM/dd/   HH:mm:ss:SSS");
+                    String temp= sdf.format(new Date())+"\n"+accelerometer_s+"\n"
+                                                            +gravity_s+"\n"
+                                                            +magnetic_s+"\n"
+                                                            +"WIFI: \n"
+                                                            +sb.toString()+"\n";
+                    msg=msg +temp;
+                    flag=1;
+                    //writeFileSdcard();
+
 
                 }
             }
